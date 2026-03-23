@@ -1,0 +1,149 @@
+import os
+import base64
+import json
+import time
+import requests
+from dotenv import load_dotenv
+
+# grabs environment variables from .env file
+load_dotenv()
+
+REDCAP_API_URL = os.getenv("REDCAP_API_URL")
+REDCAP_API_TOKEN = os.getenv("REDCAP_API_TOKEN")
+JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
+JIRA_EMAIL = os.getenv("JIRA_EMAIL")
+JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
+JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "TDI")
+
+# Track processed records so we donyt store duplicates (in-memory for demo; we shopuld use a DB/file for production)
+PROCESSED_RECORDS = set()
+
+# gets the auth header for Jira API using email and API token, encoded in base64 for Basic Auth
+def get_jira_auth_header():
+    token = f"{JIRA_EMAIL}:{JIRA_API_TOKEN}"
+    b64 = base64.b64encode(token.encode("utf-8")).decode("utf-8")
+    return {"Authorization": f"Basic {b64}"}
+
+# Converts plain text to Atlassian Document Format (ADF) for Jira Cloud
+def build_adf_description(text):
+    """Convert plain text to Atlassian Document Format (ADF) for Jira Cloud."""
+    return {
+        "type": "doc",
+        "version": 1,
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [
+                    {"type": "text", "text": text}
+                ]
+            }
+        ]
+    }
+
+# Builds Jira issue payload from REDCap data, mapping fields and formatting description
+def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
+    try:
+        # Use fname and lname for participant name
+        fname = redcap_data.get("fname", "").strip()
+        lname = redcap_data.get("lname", "").strip()
+        participant_name = f"{fname} {lname}".strip() or "Unknown participant"
+        reason = redcap_data.get("request_describ", "No reason provided").strip()
+      
+      # Mapping REDCap priority field to Jira priority 
+        priority_raw = redcap_data.get("priority", "").strip()
+        
+        priority_map = {
+            "1": "High",
+            "2": "Medium",
+            "3": "Low",
+            "High": "High",
+            "Medium": "Medium",
+            "Low": "Low",
+            "": ""  # empty string if not set
+        }
+        priority = priority_map.get(priority_raw, priority_raw)  # fallback to raw if not mapped
+
+        summary = f"REDCap Intake: {participant_name}"
+        description_text = (
+            f"Participant Name: {participant_name}\n"
+            f"Reason: {reason}\n"
+            f"Priority (from survey): {priority}\n\n"
+            f"Full REDCap payload:\n{json.dumps(redcap_data, indent=2)}"
+        )
+
+        fields = {
+            "project": {"key": JIRA_PROJECT_KEY},
+            "summary": summary,
+            "description": build_adf_description(description_text),
+            "issuetype": {"name": "Task"}
+        }
+
+        # Only add priority if it's not empty
+        if priority:
+            fields["priority"] = {"name": priority}
+
+        # Returning final payload to be sent to Jira API
+        payload = {"fields": fields}
+        print("Jira payload to be returned:", json.dumps(payload, indent=2))
+        return payload
+    except Exception as e:
+        print("Error building Jira payload:", e)
+        return {}
+
+# Fetches records from REDCap using the API, returning JSON data
+def fetch_redcap_records():
+    payload = {
+        'token': REDCAP_API_TOKEN,
+        'content': 'record',
+        'format': 'json',
+        'type': 'flat',
+        'rawOrLabel': 'label',       
+        'exportCheckboxLabel': 'true'
+
+    }
+    resp = requests.post(REDCAP_API_URL, data=payload) 
+    resp.raise_for_status()
+    return resp.json()
+
+# API call to create a Jira issue
+def create_jira_issue(issue_payload: dict) -> dict:
+    url = f"{JIRA_BASE_URL}/rest/api/3/issue"
+    headers = {
+        "Content-Type": "application/json",
+        **get_jira_auth_header()
+    }
+    print("Payload being sent to Jira:", json.dumps(issue_payload, indent=2))
+    resp = requests.post(url, headers=headers, json=issue_payload)
+    if not resp.ok:
+        print("Jira API error response:", resp.text)
+    resp.raise_for_status()
+    return resp.json()
+
+
+# ---------------- Main loop ----------------------
+
+def main():
+    print("JIRA_PROJECT_KEY:", JIRA_PROJECT_KEY)
+    print("Polling REDCap for new records...")
+    while True:
+        try:
+            records = fetch_redcap_records()
+            print(f"Fetched {len(records)} records from REDCap.")
+            for record in records:
+                record_id = record.get("record_id") or record.get("id") or str(record)
+                if record_id in PROCESSED_RECORDS:
+                    continue
+                print(f"Processing new record: {record_id}")
+                issue_payload = build_jira_payload_from_redcap(record)
+                if not issue_payload or not issue_payload.get("fields"):
+                    print("Skipping record due to empty or invalid payload.")
+                    continue
+                jira_response = create_jira_issue(issue_payload)
+                print(f"Created Jira issue: {jira_response.get('key')}")
+                PROCESSED_RECORDS.add(record_id)
+        except Exception as e:
+            print(f"Error: {e}")
+        time.sleep(60)  # Poll every 60 seconds
+
+if __name__ == "__main__":
+    main()
