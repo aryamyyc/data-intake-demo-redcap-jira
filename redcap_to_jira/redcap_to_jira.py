@@ -4,6 +4,7 @@ import json
 import time
 import requests
 from dotenv import load_dotenv
+from datetime import datetime
 
 # grabs environment variables from .env file
 load_dotenv()
@@ -62,6 +63,9 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
             "": ""  # empty string if not set
         }
         priority = priority_map.get(priority_raw, priority_raw)  # fallback to raw if not mapped
+        
+        due_date_raw = redcap_data.get("duedate", "").strip()
+        due_date = None
 
         summary = f"REDCap Intake: {participant_name}"
         description_text = (
@@ -82,6 +86,17 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         if priority:
             fields["priority"] = {"name": priority}
 
+        
+        if due_date_raw:
+            try:
+                parsed_date = datetime.strptime(due_date_raw, "%Y-%m-%d")
+                due_date = parsed_date.strftime("%Y-%m-%d")
+            except ValueError:
+                print(f"Invalid due date format from REDCap: {due_date_raw}")
+
+        if due_date:
+            fields["duedate"] = due_date
+
         # Returning final payload to be sent to Jira API
         payload = {"fields": fields}
         print("Jira payload to be returned:", json.dumps(payload, indent=2))
@@ -89,6 +104,7 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
     except Exception as e:
         print("Error building Jira payload:", e)
         return {}
+    
 
 # Fetches records from REDCap using the API, returning JSON data
 def fetch_redcap_records():
