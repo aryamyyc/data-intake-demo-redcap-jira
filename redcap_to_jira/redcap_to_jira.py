@@ -16,6 +16,9 @@ JIRA_EMAIL = os.getenv("JIRA_EMAIL")
 JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
 JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "TDI")
 
+
+DEPARTMENT_FIELD_ID = os.getenv("DEPARTMENT_FIELD_ID")
+
 # Track processed records so we donyt store duplicates (in-memory for demo; we shopuld use a DB/file for production)
 PROCESSED_RECORDS = set()
 
@@ -49,6 +52,7 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         lname = redcap_data.get("lname", "").strip()
         participant_name = f"{fname} {lname}".strip() or "Unknown participant"
         reason = redcap_data.get("request_describ", "No reason provided").strip()
+        department_raw = redcap_data.get("team", "").strip()
       
       # Mapping REDCap priority field to Jira priority 
         priority_raw = redcap_data.get("priority", "").strip()
@@ -96,6 +100,11 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
 
         if due_date:
             fields["duedate"] = due_date
+
+        if department_raw:
+            fields[DEPARTMENT_FIELD_ID] = {
+                "value": department_raw
+                }
 
         # Returning final payload to be sent to Jira API
         payload = {"fields": fields}
