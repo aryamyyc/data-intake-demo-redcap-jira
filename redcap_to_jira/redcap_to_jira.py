@@ -1,3 +1,4 @@
+from dataclasses import fields
 import os
 import base64
 import json
@@ -18,7 +19,7 @@ JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "TDI")
 
 
 DEPARTMENT_FIELD_ID = os.getenv("DEPARTMENT_FIELD_ID")
-
+REQUEST_TYPE_FIELD_ID = os.getenv("REQUEST_TYPE_FIELD_ID")
 # Track processed records so we donyt store duplicates (in-memory for demo; we shopuld use a DB/file for production)
 PROCESSED_RECORDS = set()
 
@@ -53,6 +54,9 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         participant_name = f"{fname} {lname}".strip() or "Unknown participant"
         reason = redcap_data.get("request_describ", "No reason provided").strip()
         department_raw = redcap_data.get("team", "").strip()
+        request_type_raw = redcap_data.get("requesttype", "").strip()
+        request_type_other = redcap_data.get("requesttype_other", "").strip()
+
       
       # Mapping REDCap priority field to Jira priority 
         priority_raw = redcap_data.get("priority", "").strip()
@@ -105,6 +109,15 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
             fields[DEPARTMENT_FIELD_ID] = {
                 "value": department_raw
                 }
+        
+        if request_type_raw:
+            fields[REQUEST_TYPE_FIELD_ID] = {
+                "value": request_type_raw
+                }
+        
+        if request_type_raw.lower() == "other" and request_type_other:
+            description_text += f"\n\nRequest Type (Other details): {request_type_other}"
+
 
         # Returning final payload to be sent to Jira API
         payload = {"fields": fields}
