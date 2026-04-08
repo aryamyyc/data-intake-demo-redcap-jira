@@ -20,6 +20,8 @@ JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "TDI")
 DEPARTMENT_FIELD_ID = os.getenv("DEPARTMENT_FIELD_ID")
 REQUEST_TYPE_FIELD_ID = os.getenv("REQUEST_TYPE_FIELD_ID")
 REQUESTER_NAME_FIELD_ID = os.getenv("REPORTER_NAME_FIELD_ID")
+REQUESTER_EMAIL_FIELD_ID = os.getenv("REQUESTER_EMAIL_FIELD_ID")
+
 # Track processed records so we donyt store duplicates (in-memory for demo; we shopuld use a DB/file for production)
 PROCESSED_RECORDS = set()
 
@@ -55,10 +57,10 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         requester_name = f"{fname} {lname}".strip() or "Unknown requester"
 
         reason = redcap_data.get("request_describ", "No reason provided").strip()
-
         department_raw = redcap_data.get("team", "").strip()
         request_type_raw = redcap_data.get("requesttype", "").strip()
         request_type_other = redcap_data.get("requesttype_other", "").strip()
+        requester_email = redcap_data.get("email", "").strip()
 
         # Priority mapping
         priority_raw = redcap_data.get("priority", "").strip()
@@ -83,7 +85,7 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
             except ValueError:
                 print(f"Invalid due date format from REDCap: {due_date_raw}")
 
-        # Build description text (IMPORTANT: add "Other" details BEFORE ADF conversion)
+        # Build description text
         description_text = (
             f"Participant Name: {participant_name}\n"
             f"Reason: {reason}\n"
@@ -109,7 +111,6 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         else:
             print("WARNING: REQUESTER_NAME_FIELD_ID is not set (check .env).")
 
-        # Optional fields
         if priority:
             fields["priority"] = {"name": priority}
 
@@ -122,9 +123,14 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         if request_type_raw and REQUEST_TYPE_FIELD_ID:
             fields[REQUEST_TYPE_FIELD_ID] = {"value": request_type_raw}
 
+        if requester_email and REQUESTER_EMAIL_FIELD_ID:
+            fields[REQUESTER_EMAIL_FIELD_ID] = requester_email
+
+
         payload = {"fields": fields}
         print("Jira payload to be returned:", json.dumps(payload, indent=2))
         return payload
+    
 
     except Exception as e:
         print("Error building Jira payload:", e)
