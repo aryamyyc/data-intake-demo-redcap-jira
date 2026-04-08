@@ -56,7 +56,7 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         participant_name = f"{fname} {lname}".strip() or "Unknown participant"
         requester_name = f"{fname} {lname}".strip() or "Unknown requester"
 
-        reason = redcap_data.get("request_describ", "No reason provided").strip()
+        title = redcap_data.get("request_title", "No title provided").strip()
         department_raw = redcap_data.get("team", "").strip()
         request_type_raw = redcap_data.get("requesttype", "").strip()
         request_type_other = redcap_data.get("requesttype_other", "").strip()
@@ -88,7 +88,7 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         # Build description text
         description_text = (
             f"Participant Name: {participant_name}\n"
-            f"Reason: {reason}\n"
+            f"Request: {title}\n"
             f"Priority (from survey): {priority}\n"
         )
 
@@ -100,7 +100,7 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
         # Now create fields dict (must exist before fields[...] usage)
         fields = {
             "project": {"key": JIRA_PROJECT_KEY},
-            "summary": f"REDCap Intake: {participant_name}",
+            "summary": f"{participant_name}: {title}",
             "description": build_adf_description(description_text),
             "issuetype": {"name": "Task"}
         }
