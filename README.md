@@ -50,3 +50,8 @@ JIRA_BASE_URL=https://your-domain.atlassian.net
 JIRA_EMAIL=your_email@example.com
 JIRA_API_TOKEN=your_jira_api_token
 JIRA_PROJECT_KEY=PROJECTKEY
+
+DEPARTMENT_FIELD_ID = customfield_xxxxx
+REQUEST_TYPE_FIELD_ID = customfield_xxxxx
+REPORTER_NAME_FIELD_ID = customfield_xxxxx
+REQUESTER_EMAIL_FIELD_ID = customfield_xxxxx
