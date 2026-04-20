@@ -3,10 +3,9 @@ import base64
 import json
 import time
 import requests
-from dotenv import load_dotenv
 from datetime import datetime
+from dotenv import load_dotenv
 
-# grabs environment variables from .env file
 load_dotenv()
 
 REDCAP_API_URL = os.getenv("REDCAP_API_URL")
@@ -14,12 +13,12 @@ REDCAP_API_TOKEN = os.getenv("REDCAP_API_TOKEN")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
 JIRA_EMAIL = os.getenv("JIRA_EMAIL")
 JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
-JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "TDI")
+JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY") or "TEST" or "TDI"
 
 
 DEPARTMENT_FIELD_ID = os.getenv("DEPARTMENT_FIELD_ID")
 REQUEST_TYPE_FIELD_ID = os.getenv("REQUEST_TYPE_FIELD_ID")
-REQUESTER_NAME_FIELD_ID = os.getenv("REPORTER_NAME_FIELD_ID")
+REQUESTER_NAME_FIELD_ID = os.getenv("REQUESTER_NAME_FIELD_ID")
 REQUESTER_EMAIL_FIELD_ID = os.getenv("REQUESTER_EMAIL_FIELD_ID")
 
 # Track processed records so we donyt store duplicates (in-memory for demo; we shopuld use a DB/file for production)
@@ -107,24 +106,24 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
 
         # Set custom Requester Name text field
         if REQUESTER_NAME_FIELD_ID:
-            fields[REQUESTER_NAME_FIELD_ID] = requester_name
+           fields[REQUESTER_NAME_FIELD_ID] = requester_name
         else:
-            print("WARNING: REQUESTER_NAME_FIELD_ID is not set (check .env).")
+          print("WARNING: REQUESTER_NAME_FIELD_ID is not set (check .env).")
 
         if priority:
-            fields["priority"] = {"name": priority}
+          fields["priority"] = {"name": priority}
 
         if due_date:
-            fields["duedate"] = due_date
+           fields["duedate"] = due_date
 
         if department_raw and DEPARTMENT_FIELD_ID:
-            fields[DEPARTMENT_FIELD_ID] = {"value": department_raw}
+           fields[DEPARTMENT_FIELD_ID] = {"value": department_raw}
 
         if request_type_raw and REQUEST_TYPE_FIELD_ID:
             fields[REQUEST_TYPE_FIELD_ID] = {"value": request_type_raw}
 
         if requester_email and REQUESTER_EMAIL_FIELD_ID:
-            fields[REQUESTER_EMAIL_FIELD_ID] = requester_email
+            fields[REQUESTER_EMAIL_FIELD_ID] = requester_email 
 
 
         payload = {"fields": fields}
