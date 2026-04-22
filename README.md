@@ -1,7 +1,7 @@
 # REDCap → Jira Data Intake Integration
 
-This project implements an automated integration between REDCap and Jira to streamline data intake requests. Survey submissions collected in REDCap are periodically fetched, transformed, and created as Jira issues with structured fields such as summary, description, priority, and due date.
-The goal is to replace unstructured email-based intake with an organized, automated workflow
+This project automatically sends requests from REDCap into Jira so the Data & Analytics team can track work in one place.
+Instead of people emailing requests (which can get messy or forgotten), requests are submitted through a REDCap form and automatically show up as Jira tickets.
 
 ---
 
@@ -9,9 +9,9 @@ The goal is to replace unstructured email-based intake with an organized, automa
 
 - Polls REDCap for new survey records using the REDCap API
 - Maps REDCap fields to Jira issue fields
-- Converts plain-text descriptions into Atlassian Document Format (ADF)
-- Creates Jira issues programmatically via the Jira Cloud REST API
-- Prevents duplicate issue creation during runtime
+- Creates or updates Jira issues programmatically
+- Keeps Jira in sync when REDCap records change
+- Avoids duplicate Jira issues
 
 This integration is designed to be simple, transparent, and easy to extend.
 
@@ -20,10 +20,25 @@ This integration is designed to be simple, transparent, and easy to extend.
 ## How It Works
 
 1. The script polls REDCap at a fixed interval (every 60 seconds)
-2. Each REDCap record is processed exactly once per runtime
-3. Relevant fields are extracted and normalized
-4. A Jira issue payload is constructed
-5. The issue is created in the configured Jira project
+2. All REDCap records are fetched
+3. For each record, the script creates a “fingerprint” (hash) based on important fields
+4. The current fingerprint is compared to the previous one stored locally
+5. If the fingerprint has changed:
+    - The Jira issue is created or
+    - The existing Jira issue is updated
+6,The Jira issue key is written back into REDCap to keep the systems linked
+
+## Hash-Based Change Detection
+
+REDCap does not reliably report when records are edited, especially for surveys or certain types of saves.
+To solve this, the integration uses a hash‑based comparison:
+
+- A hash is a short value that represents the contents of a record
+- If the record changes, the hash changes
+- If the hash changes, the Jira issue is updated
+- If the hash stays the same, nothing happens
+
+This ensures that Jira always reflects the latest REDCap data, changes are never missed and Jira issues are not updated unnecessarily
 
 ## Field Mapping
 
@@ -37,8 +52,6 @@ This integration is designed to be simple, transparent, and easy to extend.
 
 
 ## Environment Variables
-
-Sensitive configuration values are loaded from a `.env` file (not committed to version control).
 
 Create a `.env` file in the project root with the following variables:
 
