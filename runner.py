@@ -6,7 +6,7 @@ import traceback
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "60"))  # 1 min default
 
 def run_once():
-    # Runs the same thing you run manually
+    # Runs the same thing that runs manually
     subprocess.run(
     ["python", "redcap_to_jira/redcap_to_jira.py"],
     check=True
