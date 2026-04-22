@@ -35,6 +35,14 @@
     "Paul John": {
       "hash": "772c5d1669b88a10dd7a7463844ab9896778c2c2e4523944c311638d4a7c0786",
       "jira_key": "TEST-143"
+    },
+    "1": {
+      "hash": "40bbaa0eae915f24607941c5b2525d87524c0d8ce322f247000acb1382a38be0",
+      "jira_key": "TEST-144"
+    },
+    "Danny Dan": {
+      "hash": "301ba56c1e8c453ec8f836083ef7895549bbb2351708876da10866a88bc5346c",
+      "jira_key": "TEST-144"
     }
   }
 }

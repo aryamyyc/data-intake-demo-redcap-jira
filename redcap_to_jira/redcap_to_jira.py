@@ -44,7 +44,6 @@ def save_state(state):
 
 STATE = load_state()
 
-
 # ------------------- Jira -------------------
 def get_jira_auth_header():
     token = f"{JIRA_EMAIL}:{JIRA_API_TOKEN}"
@@ -52,14 +51,14 @@ def get_jira_auth_header():
     return {"Authorization": f"Basic {b64}"}
 
 def jira_project_access_ok() -> bool:
-    """Avoid duplicate spam if API user can't browse the project."""
+# Avoiding duplicate spam if API user can't browse the project.
     url = f"{JIRA_BASE_URL}/rest/api/3/project/{JIRA_PROJECT_KEY}"
     headers = {"Accept": "application/json", **get_jira_auth_header()}
     r = requests.get(url, headers=headers)
     return r.status_code == 200
 
 def jira_issue_exists(issue_key: str) -> bool:
-    """True only if Jira issue exists AND API user can access it."""
+# True only if Jira issue exists AND API user can access it.
     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
     headers = {"Accept": "application/json", **get_jira_auth_header()}
     r = requests.get(url, headers=headers)
@@ -163,7 +162,6 @@ def record_hash(redcap_data: dict) -> str:
         "update_freq": redcap_data.get("update_freq"),
         "pref_tool": redcap_data.get("pref_tool"),
         "tool_other": redcap_data.get("tool_other"),
-        # add/remove fields as you like
     }
     blob = json.dumps(relevant, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
