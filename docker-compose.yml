@@ -1,0 +1,12 @@
+
+services:
+  redcap-jira-poller:
+    build: .
+    container_name: redcap-jira-poller
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - POLL_SECONDS=60
+    volumes:
+      - ./.redcap_jira_hash_state.json:/app/.redcap_jira_hash_state.json

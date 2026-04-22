@@ -136,10 +136,8 @@ def write_jira_key_back_to_redcap(record_id: str, jira_key: str):
 
 # ------------------- Hashing -------------------
 def record_hash(redcap_data: dict) -> str:
-    """
-    Hash only the fields that should trigger Jira changes.
-    Excludes jira_issue_key so writing back the key doesn't trigger a loop.
-    """
+# Hashing the fields that should trigger Jira changes. Excludes jira_issue_key so writing back the key doesn't trigger a loop.
+
     relevant = {
         "record_id": redcap_data.get("record_id"),
         "fname": redcap_data.get("fname"),
@@ -167,7 +165,8 @@ def record_hash(redcap_data: dict) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-# ------------------- Mapping REDCap -> Jira -------------------
+# ------------------- Mapping REDCap to Jira -------------------
+
 def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
     fname = (redcap_data.get("fname") or "").strip()
     lname = (redcap_data.get("lname") or "").strip()
@@ -232,6 +231,9 @@ def build_jira_payload_from_redcap(redcap_data: dict) -> dict:
 
 
 # ------------------- Upsert -------------------
+
+# stops duplicates and lets edits in REDCap update the correct Jira ticket.
+
 def upsert_record(record: dict, project_access_ok: bool):
     record_id = record.get("record_id") or record.get("id") or str(record)
     jira_key = (record.get("jira_issue_key") or "").strip()
